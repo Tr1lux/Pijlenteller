@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F5F4A">
+<meta name="description" content="Houd je boogschietscores bij per ronde en volg je groei.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Pijlenteller">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Pijlenteller</title>
+<style>
+:root{
+  --bg:#F4F1EA; --card:#FFFFFF; --ink:#1C2321; --muted:#6B716E; --line:#E3DED3;
+  --accent:#1F5F4A; --accent-soft:#E2EEE8; --warn:#B4442E; --gold:#F2C230;
+  --radius:16px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#141816; --card:#1E2421; --ink:#EEF1EE; --muted:#9AA39E; --line:#2E3632; --accent:#5DBB95; --accent-soft:#1F3229; --warn:#E07A62; }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;font-size:15px}
+.wrap{max-width:560px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 40px calc(14px + env(safe-area-inset-left))}
+h1,h2,.num{font-family:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;letter-spacing:.3px}
+h1{font-size:30px;margin:4px 0 2px;display:flex;align-items:center;gap:10px}
+h2{font-size:20px;margin:0 0 10px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.between{justify-content:space-between}
+button{font:inherit;border:0;cursor:pointer;color:inherit;background:none}
+.btn{background:var(--accent);color:#fff;border-radius:12px;padding:13px 16px;font-weight:600;width:100%;font-size:16px}
+@media (prefers-color-scheme: dark){ .btn{color:#0E1512} }
+.btn.ghost{background:var(--accent-soft);color:var(--accent)}
+.btn.small{width:auto;padding:8px 12px;font-size:14px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-weight:600;font-size:14px;background:var(--card)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme: dark){ .chip.on{color:#0E1512} }
+input[type=number]{font:inherit;width:74px;padding:7px 9px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+select,input[type=text]{font:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);max-width:180px}
+@media (max-width:480px){ .card > .row > label.lbl{min-width:100%;margin-bottom:-2px} }
+label.lbl{font-size:13px;color:var(--muted);font-weight:500;min-width:110px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 8px;text-align:center}
+.tile .num{font-size:26px;line-height:1}
+.tile .t{font-size:11px;color:var(--muted);margin-top:4px}
+.hist{list-style:none;margin:0;padding:0}
+.hist li{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:11px 2px;border-top:1px solid var(--line);cursor:pointer}
+.hist li:first-child{border-top:0}
+.hist .d{font-weight:600}
+.hist .m{font-size:12px;color:var(--muted)}
+.hist .s{font-family:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;font-size:24px}
+.badge{font-size:11px;font-weight:700;padding:3px 7px;border-radius:999px;margin-left:6px;vertical-align:middle}
+.badge.ok{background:var(--accent-soft);color:var(--accent)}
+.badge.ex{background:#FCEFC7;color:#7A5A00}
+.badge.open{background:var(--line);color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:18px 6px;font-size:14px}
+.note{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+/* scoring */
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.back{font-weight:600;color:var(--accent);padding:6px 0}
+.big{display:flex;align-items:baseline;gap:6px}
+.big .num{font-size:56px;line-height:.9}
+.big .of{color:var(--muted);font-size:18px;font-family:"Barlow Condensed"}
+.bar{position:relative;height:10px;background:var(--line);border-radius:99px;margin:12px 0 8px;overflow:visible}
+.bar .fill{height:100%;background:var(--accent);border-radius:99px;transition:width .25s}
+.bar .pass{position:absolute;top:-5px;width:2px;height:20px;background:var(--warn)}
+.bar .passlbl{position:absolute;top:16px;font-size:11px;color:var(--warn);transform:translateX(-50%);font-weight:600}
+.status{font-size:14px;margin-top:18px}
+.status b{font-weight:700}
+.ends{width:100%;border-collapse:collapse}
+.ends td{padding:6px 4px;border-top:1px solid var(--line);text-align:center}
+.ends tr:first-child td{border-top:0}
+.ends td.n{color:var(--muted);font-size:13px;width:28px;text-align:left}
+.ends td.sum{font-family:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;font-size:20px;width:46px}
+.ends td.run{font-family:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;font-size:20px;color:var(--muted);width:52px}
+.ends tr.cur td{background:var(--accent-soft)}
+.ends tr.cur td:first-child{border-radius:10px 0 0 10px}.ends tr.cur td:last-child{border-radius:0 10px 10px 0}
+.ends tr{cursor:pointer}
+.ar{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;font-weight:700;font-size:14px;margin:0 2px;border:1px solid rgba(0,0,0,.12)}
+.ar.empty{background:transparent;border:1.5px dashed var(--line);color:transparent}
+.ends .head td{color:var(--muted);font-size:11px;border-top:0;padding-top:0}
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;position:sticky;bottom:0;background:var(--bg);padding:10px 0 calc(10px + env(safe-area-inset-bottom));}
+.key{height:58px;border-radius:14px;font-family:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;font-size:26px;font-weight:700;border:1px solid rgba(0,0,0,.12);box-shadow:0 2px 0 rgba(0,0,0,.08);transition:transform .06s}
+.key:active{transform:scale(.95)}
+.key.fn{font-family:Inter;font-size:15px;font-weight:600;background:var(--card);color:var(--ink);grid-column:span 2;border-color:var(--line)}
+.key.fn.done{background:var(--accent);color:#fff;border-color:var(--accent)}
+@media (prefers-color-scheme: dark){ .key.fn.done{color:#0E1512} }
+.key:disabled{opacity:.35}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+.danger{color:var(--warn);font-weight:600;font-size:14px;padding:8px 0}
+svg text{font-family:Inter,sans-serif}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend span::before{content:"";display:inline-block;width:14px;height:2px;margin-right:5px;vertical-align:middle;background:var(--accent)}
+.legend span.p::before{background:var(--warn);height:0;border-top:2px dashed var(--warn)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+"use strict";
+// ---------- Constants ----------
+const FACE = {
+  X:{v:10,bg:'#F5D90A',fg:'#1a1a1a'}, '10':{v:10,bg:'#F5D90A',fg:'#1a1a1a'}, '9':{v:9,bg:'#F5D90A',fg:'#1a1a1a'},
+  '8':{v:8,bg:'#E5322D',fg:'#fff'}, '7':{v:7,bg:'#E5322D',fg:'#fff'},
+  '6':{v:6,bg:'#2E8BD8',fg:'#fff'}, '5':{v:5,bg:'#2E8BD8',fg:'#fff'},
+  '4':{v:4,bg:'#1E1E1E',fg:'#fff'}, '3':{v:3,bg:'#1E1E1E',fg:'#fff'},
+  '2':{v:2,bg:'#FAFAFA',fg:'#1a1a1a'}, '1':{v:1,bg:'#FAFAFA',fg:'#1a1a1a'},
+  M:{v:0,bg:'#9AA0A6',fg:'#fff'}
+};
+const KEYS = ['X','10','9','8','7','6','5','4','3','2','1','M'];
+const PER_END = 3;
+const BOWS = ['Recurve','Compound','Barebow','Longboog','Bolse boog','Traditionele houtboog'];
+const DISTS = [10,18,25,30,50,70];
+
+// ---------- State ----------
+let settings = {passScore:200, endsCount:10, defaultType:'examen', distance:18, bow:'Recurve'};
+let fBow = 'all', fDist = 'all';
+let sessions = [];          // {id, createdAt, type, endsCount, passScore, ends:[[..]]}
+let view = 'home';          // 'home' | 'score'
+let active = null;          // session being edited
+let cur = 0;                // current end index
+let chartMode = 'total';
+let pendingDelete = false;
+let loading = true;
+
+// ---------- Helpers ----------
+const $ = s => document.querySelector(s);
+const val = a => FACE[a] ? FACE[a].v : 0;
+const endSum = e => e.reduce((t,a)=>t+val(a),0);
+const arrowsOf = s => s.ends.flat();
+const total = s => arrowsOf(s).reduce((t,a)=>t+val(a),0);
+const shot = s => arrowsOf(s).length;
+const maxArrows = s => s.endsCount*PER_END;
+const complete = s => shot(s) >= maxArrows(s);
+const avgArrow = s => shot(s) ? total(s)/shot(s) : 0;
+const fmt1 = n => n.toLocaleString('nl-BE',{minimumFractionDigits:1,maximumFractionDigits:1});
+function fmtDate(ts, withTime){
+  const d = new Date(ts);
+  const o = {weekday:'short', day:'numeric', month:'short'};
+  if (withTime){ o.hour='2-digit'; o.minute='2-digit'; }
+  return d.toLocaleDateString('nl-BE', o);
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cleanBow = b => String(b||'').trim().slice(0,30) || 'Onbekend';
+const cleanDist = d => { const n = Math.round(Number(d)); return n>=1 && n<=200 ? n : null; };
+const label = s => `${s.distance? s.distance+' m · ':''}${esc(s.bow)}`;
+function bowSelect(id, current){
+  const custom = !BOWS.includes(current);
+  return `<select id="${id}">${BOWS.map(b=>`<option ${b===current?'selected':''}>${esc(b)}</option>`).join('')}
+    <option value="__other" ${custom?'selected':''}>Andere…</option></select>
+    <input type="text" id="${id}Other" maxlength="30" placeholder="Naam van je boog" value="${custom?esc(current):''}" class="${custom?'':'hidden'}">`;
+}
+function wireBow(id, onSet){
+  const sel = document.getElementById(id), other = document.getElementById(id+'Other');
+  sel.onchange = () => {
+    if (sel.value==='__other'){ other.classList.remove('hidden'); other.focus(); }
+    else { other.classList.add('hidden'); onSet(sel.value); }
+  };
+  other.onchange = () => { if (other.value.trim()) onSet(cleanBow(other.value)); };
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+function withTimeout(p, ms){ return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),ms))]); }
+
+// ---------- Storage (db capability, fallback: this browser) ----------
+const store = {
+  mode:'local', KEY:'pijlenteller',
+  async init(){
+    try{ if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
+  },
+  lsGet(){ try{ return JSON.parse(localStorage.getItem(this.KEY)||'null'); }catch(e){ return null; } },
+  lsSet(obj){
+    try{ localStorage.setItem(this.KEY, JSON.stringify(obj)); }
+    catch(e){ toast('Opslaan mislukt: geheugen vol of privé-modus'); throw e; }
+  },
+  async load(){ const o=this.lsGet()||{}; return { settings:o.settings||null, sessions:o.sessions||[] }; },
+  async saveSettings(s){ const o=this.lsGet()||{}; o.settings=s; this.lsSet(o); },
+  async saveSession(s){ const o=this.lsGet()||{}; o.sessions=(o.sessions||[]).filter(x=>x.id!==s.id); o.sessions.push(JSON.parse(JSON.stringify(s))); this.lsSet(o); },
+  async deleteSession(id){ const o=this.lsGet()||{}; o.sessions=(o.sessions||[]).filter(x=>x.id!==id); this.lsSet(o); }
+};
+// db stores ends as object (nested arrays not ideal); normalise both forms
+function normalise(s){
+  let ends = s.ends;
+  if (ends && !Array.isArray(ends)){ ends = Object.keys(ends).sort((a,b)=>a-b).map(k=>ends[k]); }
+  ends = (ends||[]).map(e=>Array.isArray(e)?e.filter(a=>FACE[a]):[]);
+  const n = Math.max(1, Math.min(50, Number(s.endsCount)||10));
+  while (ends.length < n) ends.push([]);
+  return {id:String(s.id), createdAt:Number(s.createdAt)||Date.now(), type:s.type==='training'?'training':'examen',
+          endsCount:n, passScore:Number(s.passScore)||200, ends:ends.slice(0,n),
+          distance:cleanDist(s.distance), bow:cleanBow(s.bow)};
+}
+
+let saveTimer=null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  const s = active;
+  saveTimer = setTimeout(()=>{ store.saveSession(s).catch(err=>{ toast(err && err.code==='quota_exceeded' ? 'Opslag vol – verwijder oude sessies' : 'Opslaan mislukt, probeer opnieuw'); }); }, 100);
+}
+function flushSave(){
+  if (saveTimer){ clearTimeout(saveTimer); saveTimer=null; if (active) store.saveSession(active).catch(()=>toast('Opslaan mislukt')); }
+}
+
+// ---------- Rendering ----------
+function render(){ view==='home' ? renderHome() : renderScore(); }
+
+function renderHome(){
+  const bowsUsed = [...new Set(sessions.map(s=>s.bow))].sort();
+  const distsUsed = [...new Set(sessions.map(s=>s.distance).filter(Boolean))].sort((a,b)=>a-b);
+  if (fBow!=='all' && !bowsUsed.includes(fBow)) fBow='all';
+  if (fDist!=='all' && !distsUsed.includes(fDist)) fDist='all';
+  const pool = sessions.filter(s => (fBow==='all'||s.bow===fBow) && (fDist==='all'||s.distance===fDist));
+  const done = pool.filter(complete);
+  const sorted = pool.slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const best = done.length ? Math.max(...done.map(total)) : null;
+  const last5 = done.slice().sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
+  const avg5 = last5.length ? Math.round(last5.reduce((t,s)=>t+total(s),0)/last5.length) : null;
+  const allArrows = pool.reduce((t,s)=>t+shot(s),0);
+  const allPts = pool.reduce((t,s)=>t+total(s),0);
+  const passCount = done.filter(s=>total(s)>=settings.passScore).length;
+
+  const app = $('#app');
+  app.innerHTML = `
+    <h1>${targetIcon(28)} Pijlenteller</h1>
+    <p class="sub">Geef je pijlen in per ronde en volg je groei.</p>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:10px"><label class="lbl">Slaaggrens</label>
+        <button class="chip ${settings.passScore===200?'on':''}" data-pass="200">200</button>
+        <button class="chip ${settings.passScore===300?'on':''}" data-pass="300">300</button>
+        <input type="number" id="passIn" min="1" max="1500" value="${settings.passScore}" aria-label="Eigen slaaggrens">
+      </div>
+      <div class="row" style="margin-bottom:10px"><label class="lbl">Rondes per sessie</label>
+        <input type="number" id="endsIn" min="1" max="50" value="${settings.endsCount}" aria-label="Aantal rondes">
+        <span style="color:var(--muted);font-size:13px">× 3 pijlen = ${settings.endsCount*3}</span>
+      </div>
+      <div class="row" style="margin-bottom:10px"><label class="lbl">Afstand</label>
+        ${DISTS.map(d=>`<button class="chip ${settings.distance===d?'on':''}" data-dist="${d}">${d} m</button>`).join('')}
+        <span class="row" style="gap:4px"><input type="number" id="distIn" min="1" max="200" value="${settings.distance||''}" aria-label="Eigen afstand in meter"><span style="color:var(--muted);font-size:13px">m</span></span>
+      </div>
+      <div class="row" style="margin-bottom:10px"><label class="lbl">Boog</label>${bowSelect('bowSel', settings.bow)}</div>
+      <div class="row" style="margin-bottom:12px"><label class="lbl">Soort</label>
+        <button class="chip ${settings.defaultType==='examen'?'on':''}" data-type="examen">Examen-oefening</button>
+        <button class="chip ${settings.defaultType==='training'?'on':''}" data-type="training">Training</button>
+      </div>
+      <button class="btn" id="newBtn">＋ Nieuwe sessie starten</button>
+    </div>
+
+    ${(bowsUsed.length>1||distsUsed.length>1) ? `<div class="row" style="margin-bottom:10px">
+      <span style="font-size:13px;color:var(--muted);font-weight:500">Toon:</span>
+      <select id="fBow"><option value="all">Alle bogen</option>${bowsUsed.map(b=>`<option value="${esc(b)}" ${fBow===b?'selected':''}>${esc(b)}</option>`).join('')}</select>
+      <select id="fDist"><option value="all">Alle afstanden</option>${distsUsed.map(d=>`<option value="${d}" ${fDist===d?'selected':''}>${d} m</option>`).join('')}</select>
+    </div>` : ''}
+    <div class="tiles" style="margin-bottom:14px">
+      <div class="tile"><div class="num">${pool.length}</div><div class="t">Sessies</div></div>
+      <div class="tile"><div class="num">${best ?? '–'}</div><div class="t">Beste score</div></div>
+      <div class="tile"><div class="num">${avg5 ?? '–'}</div><div class="t">Gem. laatste 5</div></div>
+      <div class="tile"><div class="num">${allArrows?fmt1(allPts/allArrows):'–'}</div><div class="t">Gem. per pijl</div></div>
+    </div>
+
+    <div class="card">
+      <div class="row between" style="margin-bottom:6px">
+        <h2 style="margin:0">Groei</h2>
+        <div class="row">
+          <button class="chip ${chartMode==='total'?'on':''}" data-cm="total">Totaal</button>
+          <button class="chip ${chartMode==='avg'?'on':''}" data-cm="avg">Per pijl</button>
+        </div>
+      </div>
+      ${chartSVG(pool)}
+      ${done.length ? `<div class="note">${passCount} van ${done.length} volledige sessies boven ${settings.passScore}</div>`:''}
+    </div>
+
+    <div class="card">
+      <h2>Geschiedenis</h2>
+      ${loading ? `<div class="empty">Sessies laden…</div>` :
+        sorted.length ? `<ul class="hist">${sorted.map(s=>{
+          const c = complete(s), ok = c && total(s)>=s.passScore;
+          return `<li data-open="${s.id}">
+            <div><div class="d">${fmtDate(s.createdAt,true)}${s.type==='examen'?'<span class="badge ex">Examen</span>':''}${!c?'<span class="badge open">Bezig</span>':ok?'<span class="badge ok">Geslaagd</span>':''}</div>
+            <div class="m">${label(s)} · ${shot(s)}/${maxArrows(s)} pijlen · gem. ${fmt1(avgArrow(s))} · grens ${s.passScore}</div></div>
+            <div class="s">${total(s)}</div></li>`; }).join('')}</ul>`
+        : `<div class="empty">${sessions.length?'Geen sessies voor deze selectie.':'Nog geen sessies. Start je eerste hierboven.'}</div>`}
+    </div>
+    <div class="card">
+      <h2>Back-up</h2>
+      <p class="sub" style="margin-bottom:12px">Je scores staan alleen op dit toestel en werken ook zonder internet. Maak af en toe een back-up, zeker voor je van telefoon wisselt.</p>
+      <div class="row">
+        <button class="btn ghost small" id="expBtn">⬇ Back-up maken</button>
+        <button class="btn ghost small" id="impBtn">⬆ Back-up terugzetten</button>
+        <input type="file" id="impFile" accept="application/json,.json" class="hidden">
+      </div>
+    </div>
+  `;
+
+  app.querySelectorAll('[data-pass]').forEach(b=>b.onclick=()=>setPass(Number(b.dataset.pass)));
+  $('#passIn').onchange = e => { const v=Math.round(Number(e.target.value)); if (v>0) setPass(v); };
+  $('#endsIn').onchange = e => { const v=Math.round(Number(e.target.value)); if (v>=1 && v<=50){ settings.endsCount=v; persistSettings(); render(); } };
+  app.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{ settings.defaultType=b.dataset.type; persistSettings(); render(); });
+  app.querySelectorAll('[data-dist]').forEach(b=>b.onclick=()=>{ settings.distance=Number(b.dataset.dist); persistSettings(); render(); });
+  $('#distIn').onchange = e => { const v=cleanDist(e.target.value); if (v){ settings.distance=v; persistSettings(); render(); } };
+  wireBow('bowSel', b => { settings.bow=b; persistSettings(); render(); });
+  if ($('#fBow')) $('#fBow').onchange = e => { fBow=e.target.value; render(); };
+  if ($('#fDist')) $('#fDist').onchange = e => { fDist=e.target.value==='all'?'all':Number(e.target.value); render(); };
+  app.querySelectorAll('[data-cm]').forEach(b=>b.onclick=()=>{ chartMode=b.dataset.cm; render(); });
+  app.querySelectorAll('[data-open]').forEach(li=>li.onclick=()=>openSession(li.dataset.open));
+  $('#newBtn').onclick = newSession;
+  $('#expBtn').onclick = exportBackup;
+  $('#impBtn').onclick = () => $('#impFile').click();
+  $('#impFile').onchange = e => { const f=e.target.files[0]; if (f) importBackup(f); e.target.value=''; };
+}
+
+async function exportBackup(){
+  const data = JSON.stringify({app:'pijlenteller', version:1, exportedAt:new Date().toISOString(), settings, sessions}, null, 1);
+  const name = 'pijlenteller-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  const file = new File([data], name, {type:'application/json'});
+  try{
+    if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:'Pijlenteller back-up'}); return; }
+  }catch(e){ if (e && e.name==='AbortError') return; }
+  const url = URL.createObjectURL(file); const a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000); toast('Back-up gedownload');
+}
+async function importBackup(f){
+  try{
+    if (f.size > 5e6) throw new Error('te groot');
+    const o = JSON.parse(await f.text());
+    if (!o || o.app!=='pijlenteller' || !Array.isArray(o.sessions)) throw new Error('geen back-up');
+    const incoming = o.sessions.slice(0,5000).map(normalise);
+    const byId = new Map(sessions.map(s=>[s.id,s]));
+    let added=0; incoming.forEach(s=>{ if(!byId.has(s.id)){ byId.set(s.id,s); added++; } });
+    sessions = [...byId.values()];
+    const st = store.lsGet()||{}; st.sessions = sessions; store.lsSet(st);
+    toast(added ? `${added} sessie(s) teruggezet` : 'Alles stond er al');
+    render();
+  }catch(e){ toast('Dit bestand is geen geldige Pijlenteller-back-up'); }
+}
+
+function setPass(v){ settings.passScore=v; persistSettings(); render(); }
+function persistSettings(){ store.saveSettings(Object.assign({},settings)).catch(()=>toast('Instellingen niet opgeslagen')); }
+
+function chartSVG(pool){
+  const pts = pool.filter(s => chartMode==='total' ? complete(s) : shot(s)>0)
+                      .sort((a,b)=>a.createdAt-b.createdAt);
+  if (pts.length < 1) return `<div class="empty">Na je eerste volledige sessie verschijnt hier je groei.</div>`;
+  const W=520,H=200,L=36,R=10,T=12,B=26;
+  const ys = pts.map(s => chartMode==='total' ? total(s) : avgArrow(s));
+  const passLine = chartMode==='total' ? settings.passScore : settings.passScore/(settings.endsCount*PER_END);
+  const maxY = chartMode==='total' ? Math.max(...pts.map(maxArrows)) : 10;
+  let lo = Math.min(...ys, passLine), hi = Math.max(...ys, passLine);
+  const padY = Math.max((hi-lo)*0.15, chartMode==='total'?10:0.5);
+  lo = Math.max(0, lo-padY); hi = Math.min(maxY, hi+padY); if (hi-lo<1e-6){ hi=lo+1; }
+  const x = i => pts.length===1 ? (L+W-R)/2 : L + i*(W-L-R)/(pts.length-1);
+  const y = v => T + (H-T-B)*(1-(v-lo)/(hi-lo));
+  const ticks = 4, grid=[];
+  for (let k=0;k<=ticks;k++){ const v=lo+(hi-lo)*k/ticks; grid.push(`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" font-size="11" fill="var(--muted)" text-anchor="end">${chartMode==='total'?Math.round(v):fmt1(v)}</text>`); }
+  const path = ys.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const step = Math.ceil(pts.length/6);
+  const xl = pts.map((s,i)=> (i%step===0||i===pts.length-1) ? `<text x="${x(i)}" y="${H-6}" font-size="10.5" fill="var(--muted)" text-anchor="middle">${new Date(s.createdAt).toLocaleDateString('nl-BE',{day:'numeric',month:'numeric'})}</text>`:'').join('');
+  const dots = ys.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${v>=passLine?'var(--accent)':'var(--card)'}" stroke="var(--accent)" stroke-width="2"><title>${chartMode==='total'?v:fmt1(v)}</title></circle>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Scoreverloop">
+    ${grid.join('')}
+    <line x1="${L}" x2="${W-R}" y1="${y(passLine)}" y2="${y(passLine)}" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${dots}${xl}</svg>
+    <div class="legend"><span>${chartMode==='total'?'Totaalscore (volledige sessies)':'Gemiddelde per pijl'}</span><span class="p">Slaaggrens ${chartMode==='total'?settings.passScore:fmt1(passLine)}</span></div>`;
+}
+
+function arrowChip(a){
+  if (!a) return `<span class="ar empty">·</span>`;
+  const f=FACE[a]; return `<span class="ar" style="background:${f.bg};color:${f.fg}">${a}</span>`;
+}
+
+function renderScore(){
+  const s = active, t = total(s), max = maxArrows(s), n = shot(s);
+  const rem = max - n, need = s.passScore - t;
+  let status;
+  if (need <= 0) status = `🎯 <b>Slaaggrens gehaald!</b> ${t} punten, ${t-s.passScore} boven de grens.`;
+  else if (rem === 0) status = `Sessie klaar: <b>${need}</b> punten tekort voor ${s.passScore}.`;
+  else if (need > rem*10) status = `De grens van ${s.passScore} is niet meer haalbaar in deze sessie.`;
+  else status = `Nog <b>${need}</b> punten nodig in ${rem} pijlen: gemiddeld <b>${fmt1(need/rem)}</b> per pijl.`;
+  const pct = Math.min(100, t / (max*10) * 100), passPct = Math.min(100, s.passScore/(max*10)*100);
+  const xs = arrowsOf(s).filter(a=>a==='X').length, tens = arrowsOf(s).filter(a=>a==='10'||a==='X').length;
+  let run=0;
+  const rows = s.ends.map((e,i)=>{ run += endSum(e); const filled=e.length>0;
+    return `<tr data-end="${i}" class="${i===cur?'cur':''}"><td class="n">${i+1}</td>
+      <td>${[0,1,2].map(k=>arrowChip(e[k])).join('')}</td>
+      <td class="sum">${filled?endSum(e):''}</td><td class="run">${filled?run:''}</td></tr>`; }).join('');
+  const curFull = (s.ends[cur]||[]).length >= PER_END;
+
+  $('#app').innerHTML = `
+    <div class="top">
+      <button class="back" id="backBtn">‹ Overzicht</button>
+      <div class="row">
+        <button class="chip ${s.type==='examen'?'on':''}" data-st="examen">Examen</button>
+        <button class="chip ${s.type==='training'?'on':''}" data-st="training">Training</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row between">
+        <div class="big"><span class="num">${t}</span><span class="of">/ ${max*10}</span></div>
+        <div style="text-align:right;font-size:13px;color:var(--muted)">${fmtDate(s.createdAt,true)}<br>${n}/${max} pijlen · gem. ${fmt1(avgArrow(s))}<br>X: ${xs} · 10+X: ${tens}</div>
+      </div>
+      <div class="bar"><div class="fill" style="width:${pct}%"></div><div class="pass" style="left:${passPct}%"></div><div class="passlbl" style="left:${passPct}%">${s.passScore}</div></div>
+      <div class="status">${status}</div>
+    </div>
+    <div class="card" style="padding:10px 12px">
+      <div class="row"><label class="lbl" style="min-width:0">Afstand</label>
+        <span class="row" style="gap:4px"><input type="number" id="sDist" min="1" max="200" value="${s.distance||''}" aria-label="Afstand in meter"><span style="color:var(--muted);font-size:13px">m</span></span>
+        <label class="lbl" style="min-width:0;margin-left:6px">Boog</label>${bowSelect('sBow', s.bow)}</div>
+    </div>
+    <div class="card" style="padding:8px 10px">
+      <table class="ends"><tr class="head"><td class="n">#</td><td>Pijlen</td><td>Ronde</td><td>Totaal</td></tr>${rows}</table>
+    </div>
+    <div style="text-align:center"><button class="danger" id="delBtn">${pendingDelete?'Tik nogmaals om definitief te verwijderen':'Sessie verwijderen'}</button></div>
+    <div class="pad">
+      ${KEYS.map(k=>{const f=FACE[k];return `<button class="key" data-k="${k}" style="background:${f.bg};color:${f.fg}" ${curFull||rem===0?'disabled':''} aria-label="Score ${k}">${k}</button>`;}).join('')}
+      <button class="key fn" id="undoBtn" ${n===0?'disabled':''}>↶ Terug</button>
+      <button class="key fn done" id="doneBtn">${rem===0?'✓ Klaar':'Opslaan & sluiten'}</button>
+    </div>`;
+
+  document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>addArrow(b.dataset.k));
+  document.querySelectorAll('[data-end]').forEach(r=>r.onclick=()=>{ cur=Number(r.dataset.end); pendingDelete=false; renderScore(); });
+  document.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{ active.type=b.dataset.st; scheduleSave(); renderScore(); });
+  $('#sDist').onchange = e => { const v=cleanDist(e.target.value); if (v){ active.distance=v; scheduleSave(); } else e.target.value = active.distance||''; };
+  wireBow('sBow', b => { active.bow=b; scheduleSave(); });
+  $('#undoBtn').onclick = undo;
+  $('#doneBtn').onclick = closeSession;
+  $('#backBtn').onclick = closeSession;
+  $('#delBtn').onclick = deleteActive;
+  const curRow = document.querySelector('tr.cur'); if (curRow && curRow.scrollIntoView && n>0) curRow.scrollIntoView({block:'nearest'});
+}
+
+// ---------- Actions ----------
+function newSession(){
+  active = normalise({id:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), createdAt:Date.now(),
+    type:settings.defaultType, endsCount:settings.endsCount, distance:settings.distance, bow:settings.bow, passScore:settings.passScore, ends:[]});
+  sessions.push(active); cur=0; pendingDelete=false; view='score'; render(); window.scrollTo(0,0);
+}
+function openSession(id){
+  active = sessions.find(s=>s.id===id); if (!active) return;
+  cur = active.ends.findIndex(e=>e.length<PER_END); if (cur<0) cur=active.endsCount-1;
+  pendingDelete=false; view='score'; render(); window.scrollTo(0,0);
+}
+function addArrow(k){
+  const e = active.ends[cur]; if (!e || e.length>=PER_END) return;
+  e.push(k);
+  if (e.length===PER_END){
+    const nxt = active.ends.findIndex((x,i)=>i>cur && x.length<PER_END);
+    const any = nxt>=0 ? nxt : active.ends.findIndex(x=>x.length<PER_END);
+    if (any>=0) cur = any;
+    if (navigator.vibrate) try{ navigator.vibrate(15); }catch(_){}
+  }
+  pendingDelete=false; scheduleSave(); renderScore();
+}
+function undo(){
+  let e = active.ends[cur];
+  if (!e.length){
+    // go back to the last end that has arrows
+    let j=-1; for (let i=active.ends.length-1;i>=0;i--){ if (active.ends[i].length){ j=i; break; } }
+    if (j<0) return; cur=j; e=active.ends[j];
+  }
+  e.pop(); pendingDelete=false; scheduleSave(); renderScore();
+}
+function closeSession(){
+  if (active && shot(active)===0){ // nothing entered: discard silently
+    sessions = sessions.filter(s=>s!==active); clearTimeout(saveTimer); saveTimer=null;
+    store.deleteSession(active.id).catch(()=>{});
+  } else flushSave();
+  active=null; view='home'; render(); window.scrollTo(0,0);
+}
+function deleteActive(){
+  if (!pendingDelete){ pendingDelete=true; renderScore(); return; }
+  const id = active.id; clearTimeout(saveTimer); saveTimer=null;
+  sessions = sessions.filter(s=>s.id!==id);
+  store.deleteSession(id).then(()=>toast('Sessie verwijderd')).catch(()=>toast('Verwijderen mislukt'));
+  active=null; pendingDelete=false; view='home'; render();
+}
+
+function targetIcon(sz){
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#FAFAFA" stroke="#ccc"/><circle cx="20" cy="20" r="15.5" fill="#1E1E1E"/><circle cx="20" cy="20" r="12" fill="#2E8BD8"/><circle cx="20" cy="20" r="8.5" fill="#E5322D"/><circle cx="20" cy="20" r="5" fill="#F5D90A"/><path d="M34 6 L21 19" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><path d="M34 6 l-4 0.5 M34 6 l-0.5 4" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg>`;
+}
+
+// ---------- Boot ----------
+render();
+(async function boot(){
+  await store.init();
+  try{
+    const data = await store.load();
+    if (data.settings){
+      const st=data.settings;
+      settings = { passScore: Number(st.passScore)>0?Number(st.passScore):200,
+                   endsCount: Math.min(50,Math.max(1,Number(st.endsCount)||10)),
+                   defaultType: st.defaultType==='training'?'training':'examen',
+                   distance: cleanDist(st.distance) || 18, bow: st.bow ? cleanBow(st.bow) : 'Recurve' };
+    }
+    const loaded = data.sessions.map(normalise);
+    const ids = new Set(sessions.map(s=>s.id));
+    sessions = sessions.concat(loaded.filter(s=>!ids.has(s.id)));
+  }catch(e){
+    toast(e && e.code==='timeout' ? 'Je sessies zijn nog niet bereikbaar' : 'Sessies laden mislukt');
+  }
+  loading=false;
+  if (view==='home') render();
+})();
+window.addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='hidden') flushSave(); });
+if ('serviceWorker' in navigator && location.protocol==='https:'){
+  window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+})();
+</script>
+</body>
+</html>
